@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maths with Atlas</title>
+<style>
+  :root{
+    /* GeoGebra‑ish neutrals & blue */
+    --gg-blue:#1976d2;
+    --gg-blue-d:#155aa0;
+    --ink:#223; --ink-soft:#556;
+    --panel:#f7f9fc; --panel-2:#eef3fa; --line:#dde6f2;
+    --ok:#1e7d4f; --bad:#b02525; --warn:#a06b00;
+    --paper:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(#f9fbfe,#f3f7fd);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color:var(--ink);
+  }
+
+  /* Top bar */
+  .top{
+    position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; gap:14px;
+    padding:10px 16px; color:#fff; background:var(--gg-blue);
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+  }
+  .brand{font-weight:700; letter-spacing:.3px; font-size:18px}
+  .sub{opacity:.9; font-size:12px}
+  .top .spacer{flex:1}
+  .pill{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+        padding:5px 10px; border-radius:999px; font-size:12px}
+
+  /* Layout shell */
+  .shell{
+    display:grid; grid-template-columns: 240px 1fr 280px;
+    gap:14px; padding:14px; max-width:1400px; margin:0 auto;
+  }
+  aside, main{background:var(--paper); border:1px solid var(--line); border-radius:12px}
+  aside{padding:12px}
+  main{padding:0; overflow:hidden; display:flex; flex-direction:column}
+
+  /* Left settings panel */
+  h2{margin:6px 6px 10px; font-size:14px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.08em}
+  .group{display:flex; flex-direction:column; gap:6px; margin:10px 6px}
+  label{font-size:12px; color:var(--ink-soft)}
+  select, input[type="text"], input[type="number"]{
+    padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#fff;
+    font:inherit; color:inherit;
+  }
+  .btn{
+    all:unset; display:inline-block; text-align:center; cursor:pointer; user-select:none;
+    padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:linear-gradient(#fff,#f0f4fb); color:var(--gg-blue); font-weight:600;
+  }
+  .btn:hover{filter:brightness(1.03)}
+  .btn.primary{background:linear-gradient(#fff,#e9f1ff); border-color:#bcd2f0; color:#0f4ea8}
+  .btn.accent{background:linear-gradient(#eaf3ff,#d7e8ff); border-color:#b8cff1; color:#0b57cf}
+
+  .stat{display:flex; align-items:center; gap:6px; font-size:12px; background:var(--panel);
+        border:1px solid var(--line); padding:8px 10px; border-radius:10px}
+
+  /* Main workspace (worksheet + answer actions) */
+  .toolbar{
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:var(--panel-2); border-bottom:1px solid var(--line);
+  }
+  .toolbar .topic-tag{padding:5px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:12px}
+  .worksheet{
+    flex:1; padding:16px; display:grid; grid-template-rows:auto auto 1fr;
+    gap:10px; background:#fff;
+  }
+  .question{
+    font-size: clamp(18px, 2.6vw, 26px);
+    letter-spacing:.25px;
+  }
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end}
+  .answer{
+    display:flex; gap:8px; align-items:center; background:var(--panel);
+    padding:10px; border:1px solid var(--line); border-radius:10px;
+  }
+  .answer input{
+    min-width:200px; padding:8px 10px; border-radius:8px; border:1px solid var(--line);
+    font:inherit;
+  }
+  .feedback{min-height:24px}
+  .feedback .ok{color:var(--ok); font-weight:700}
+  .feedback .bad{color:var(--bad); font-weight:700}
+  .steps{
+    margin-top:6px; background:#fff; border:1px dashed var(--line); border-radius:10px;
+    padding:10px; white-space:pre-wrap; color:var(--ink-soft); display:none;
+  }
+
+  /* Right history panel */
+  .list{display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 140px); overflow:auto; padding-right:4px}
+  .card{
+    border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:10px; font-size:12px;
+  }
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .muted{color:var(--ink-soft)}
+  .tiny{font-size:11px}
+
+  @media (max-width: 1100px){
+    .shell{grid-template-columns: 1fr; }
+    aside.right{order:3}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand">maths with atlas</div>
+    <div class="sub">— practice generator</div>
+    <div class="spacer"></div>
+    <div class="pill"><span id="streak">0</span> streak</div>
+    <div class="pill"><span id="accuracy">—</span> accuracy</div>
+  </div>
+
+  <div class="shell">
+    <!-- LEFT: settings -->
+    <aside>
+      <h2>setup</h2>
+      <div class="group">
+        <label for="topic">Topic</label>
+        <select id="topic">
+          <option value="arithmetic">Arithmetic (+ − × ÷)</option>
+          <option value="fractions">Fractions</option>
+          <option value="percent">Percentages</option>
+          <option value="algebra_linear">Algebra — Linear</option>
+          <option value="algebra_quadratic">Algebra — Quadratic</option>
+          <option value="systems">Systems of Equations</option>
+          <option value="exponents">Exponents & Roots</option>
+          <option value="logarithms">Logarithms</option>
+          <option value="sequences">Sequences & Series</option>
+          <option value="probability">Combinatorics / Probability</option>
+          <option value="geometry">Geometry (Area/Perimeter)</option>
+          <option value="matrices">Matrices (det / entries)</option>
+          <option value="mix">Mixed Bag</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label for="level">Level</label>
+        <select id="level">
+          <option value="1">Beginner</option>
+          <option value="2">Apprentice</option>
+          <option value="3">Journeyman</option>
+          <option value="4">Master</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label for="mode">Answer mode</label>
+        <select id="mode">
+          <option value="auto">Auto tolerance (≈ 1e-4)</option>
+          <option value="exact">Exact only (no rounding)</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <button id="generate" class="btn primary">Generate Question</button>
+        <button id="resetStats" class="btn">Reset Stats</button>
+      </div>
+
+      <h2>help</h2>
+      <div class="card">
+        Type answers as decimals or simple fractions (<span class="mono">7/4</span>).  
+        For **matrices**, questions ask for a **single entry** or a **determinant** (a number).
+      </div>
+    </aside>
+
+    <!-- CENTER: worksheet -->
+    <main>
+      <div class="toolbar">
+        <div class="topic-tag" id="topicTag">—</div>
+        <div class="muted tiny" id="meta"></div>
+        <div class="spacer"></div>
+        <button id="explain" class="btn">Explain</button>
+        <button id="next" class="btn accent">Next</button>
+      </div>
+
+      <div class="worksheet">
+        <div id="qText" class="question">Choose a topic & level, then press <b>Generate Question</b>.</div>
+
+        <div class="row answer">
+          <label for="answer" class="muted tiny">Your answer</label>
+          <input id="answer" type="text" inputmode="decimal" placeholder="e.g., 3/4 or 0.75" />
+          <button id="check" class="btn">Check</button>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+        <div id="steps" class="steps"></div>
+      </div>
+    </main>
+
+    <!-- RIGHT: history -->
+    <aside class="right">
+      <h2>history</h2>
+      <div id="history" class="list" aria-live="polite"></div>
+    </aside>
+  </div>
+
+<script>
+(()=>{
+
+/* ===============================
+   Utility + persistence
+=================================*/
+const $ = sel => document.querySelector(sel);
+const rand = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const sgn = () => Math.random()<.5 ? 1 : -1;
+
+function parseNumber(s){
+  s = (s??'').toString().trim();
+  if (!s) return NaN;
+  // fraction?
+  if (s.includes('/')){
+    const [a,b] = s.split('/').map(x => Number(x.replace(',','.')));
+    if (!isFinite(a) || !isFinite(b) || b===0) return NaN;
+    return a / b;
+  }
+  const v = Number(s.replace(',','.'));
+  return isFinite(v) ? v : NaN;
+}
+function pretty(x){
+  if (!isFinite(x)) return String(x);
+  if (Math.abs(x-Math.round(x))<1e-12) return String(Math.round(x));
+  return String(Number(x.toFixed(6)));
+}
+function eq(a,b,mode='auto'){
+  if (mode==='exact') return a===b;
+  const tol = 1e-4 * Math.max(1, Math.abs(a), Math.abs(b));
+  return Math.abs(a-b) <= tol;
+}
+
+function keep(n,d){ // simplify sign
+  if (d<0){ n=-n; d=-d; }
+  return [n,d];
+}
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function simplify(n,d){ const g=gcd(n,d); return keep(n/g, d/g); }
+
+/* ===============================
+   Ranges by level (Master much harder)
+=================================*/
+function ranges(L){
+  switch(L){
+    case 1: return { small:[0,10], med:[2,20], big:[3,40], coef:[-6,6], base:[2,9], probN:[4,8] };
+    case 2: return { small:[-20,40], med:[4,60], big:[6,120], coef:[-12,12], base:[2,12], probN:[6,10] };
+    case 3: return { small:[-60,60], med:[8,140], big:[10,220], coef:[-20,20], base:[2,15], probN:[8,12] };
+    case 4: return { small:[-150,200], med:[15,400], big:[20,900], coef:[-40,40], base:[2,30], probN:[10,14] }; // Master
+    default:return ranges(2);
+  }
+}
+
+/* ===============================
+   DOM
+=================================*/
+const topicEl = $('#topic'), levelEl = $('#level'), modeEl = $('#mode');
+const genBtn = $('#generate'), nextBtn = $('#next'), chkBtn = $('#check'), expBtn = $('#explain');
+const qText = $('#qText'), ansEl = $('#answer'), fb = $('#feedback'), steps = $('#steps');
+const topicTag = $('#topicTag'), meta = $('#meta'), hist = $('#history');
+const streakEl = $('#streak'), accEl = $('#accuracy'), resetStats = $('#resetStats');
+
+let current=null; // { prompt, answer, explain, tag }
+let streak = +localStorage.getItem('mwa_streak') || 0;
+let right  = +localStorage.getItem('mwa_right')  || 0;
+let total  = +localStorage.getItem('mwa_total')  || 0;
+updateStats();
+
+resetStats.addEventListener('click', ()=>{ streak=0; right=0; total=0; persist(); updateStats(); });
+genBtn.addEventListener('click', newProblem);
+nextBtn.addEventListener('click', newProblem);
+chkBtn.addEventListener('click', checkAnswer);
+expBtn.addEventListener('click', ()=>{ if(current){ steps.style.display='block'; } });
+ansEl.addEventListener('keydown', e=>{ if(e.key==='Enter') checkAnswer(); });
+
+function persist(){ localStorage.setItem('mwa_streak', streak); localStorage.setItem('mwa_right', right); localStorage.setItem('mwa_total', total); }
+function updateStats(){ streakEl.textContent = streak; accEl.textContent = total? Math.round(100*right/total)+'%':'—'; }
+function tagTopic(t){ topicTag.textContent = t; }
+
+function newProblem(){
+  steps.style.display='none'; fb.textContent='';
+  ansEl.value=''; ansEl.focus();
+  const L = +levelEl.value;
+  const t = topicEl.value==='mix' ? choice(['arithmetic','fractions','percent','algebra_linear','algebra_quadratic','systems','exponents','logarithms','sequences','probability','geometry','matrices']) : topicEl.value;
+  current = generate(t, L);
+  qText.innerHTML = current.prompt;
+  tagTopic(current.tag || t);
+  meta.textContent = `Level ${['Beginner','Apprentice','Journeyman','Master'][L-1]}`;
+}
+
+function checkAnswer(){
+  if(!current) return;
+  const mode = modeEl.value;
+  const user = parseNumber(ansEl.value);
+  const ok = eq(user, current.answer, mode);
+  total++;
+  if(ok){ right++; streak++; fb.innerHTML=`<span class="ok">Correct.</span>`; }
+  else { streak=0; fb.innerHTML=`<span class="bad">Answer:</span> <span class="mono">${pretty(current.answer)}</span>`; }
+  persist(); updateStats();
+  steps.style.display='none'; // reveal only on Explain
+  addHistory(current.prompt, user, current.answer, ok);
+}
+
+function addHistory(prompt, user, truth, ok){
+  const div = document.createElement('div');
+  div.className='card';
+  div.innerHTML = `<div class="tiny muted">${new Date().toLocaleTimeString()}</div>
+                   <div>${prompt}</div>
+                   <div class="tiny"><b>Yours:</b> <span class="mono">${isNaN(user)?'—':pretty(user)}</span> • 
+                                    <b>Key:</b> <span class="mono">${pretty(truth)}</span> • 
+                                    <b>${ok?'<span class="ok">✔</span>':'<span class="bad">✖</span>'}</b></div>`;
+  hist.prepend(div);
+}
+
+/* ===============================
+   Generators
+=================================*/
+function generate(topic, L){
+  const R = ranges(L);
+  switch(topic){
+    case 'arithmetic':       return genArithmetic(R, L);
+    case 'fractions':        return genFractions(R, L);
+    case 'percent':          return genPercent(R, L);
+    case 'algebra_linear':   return genAlgebraLinear(R, L);
+    case 'algebra_quadratic':return genQuadratic(R, L);
+    case 'systems':          return genSystems(R, L);
+    case 'exponents':        return genExponents(R, L);
+    case 'logarithms':       return genLogs(R, L);
+    case 'sequences':        return genSequences(R, L);
+    case 'probability':      return genProbability(R, L);
+    case 'geometry':         return genGeometry(R, L);
+    case 'matrices':         return genMatrices(R, L);
+    default:                 return genArithmetic(R, L);
+  }
+}
+
+/* --- Arithmetic --- */
+function genArithmetic(R,L){
+  const ops = ['+','-','×','÷']; const op = choice(ops);
+  let a = rand(...R.med)*sgn(), b = rand(...R.med)*sgn();
+  if(op==='÷'){
+    b = rand(2, Math.max(2, R.med[1])); // divisor
+    const q = rand(...R.small)*sgn(); a = b*q;
+    return { tag:'Arithmetic', prompt:`Compute: <span class="mono">${a} ÷ ${b}</span>`, answer:q, explain:`Because ${a}=${b}×${q}.` };
+  }
+  const ans = (op==='+')?a+b: (op==='-')?a-b: a*b;
+  return { tag:'Arithmetic', prompt:`Compute: <span class="mono">${a} ${op} ${b}</span>`, answer:ans, explain:`Apply ${op}.` };
+}
+
+/* --- Fractions --- */
+function genFractions(R,L){
+  let a=rand(1,12)*sgn(), b=rand(2,12), c=rand(1,12)*sgn(), d=rand(2,12);
+  const kind = choice(['add','sub','mul','div','simplify']);
+  if(kind==='simplify'){
+    const n=a*c, den=b*d; const [sn,sd]=simplify(n,den);
+    return { tag:'Fractions', prompt:`Simplify: <span class="mono">${n}/${den}</span>`, answer:sn/sd,
+      explain:`gcd=${gcd(Math.abs(n),Math.abs(den))} ⇒ ${n}/${den}→${sn}/${sd}.` };
+  }
+  if(kind==='mul' || kind==='div'){
+    let n = (kind==='mul')?a*c : a*d, den=(kind==='mul')?b*d : b*c;
+    const [sn,sd]=simplify(n,den);
+    return { tag:'Fractions', prompt:`Compute: <span class="mono">${a}/${b} ${kind==='mul'?'×':'÷'} ${c}/${d}</span>`, answer:sn/sd,
+      explain:`${kind==='mul'?'Multiply numerators & denominators':'Multiply by reciprocal'} → ${n}/${den} → ${sn}/${sd}.` };
+  }
+  // add/sub
+  const op = (kind==='add')?'+':'−';
+  let n = a*d + (kind==='add'?1:-1)*c*b, den=b*d; const [sn,sd]=simplify(n,den);
+  return { tag:'Fractions', prompt:`Compute: <span class="mono">${a}/${b} ${op} ${c}/${d}</span>`, answer:sn/sd,
+    explain:`Common denominator ${b}×${d}=${b*d}; numerator ${a}×${d} ${op} ${c}×${b}=${n}.` };
+}
+
+/* --- Percent --- */
+function genPercent(R,L){
+  const base = rand(20, Math.max(60, R.big[1]));
+  const p = rand(5, 60); const mode = choice(['of','increase','decrease']);
+  if(mode==='of'){
+    const ans = base*p/100;
+    return { tag:'Percent', prompt:`Find <span class="mono">${p}%</span> of <span class="mono">${base}</span>`, answer:ans,
+      explain:`${p}% of ${base} = ${p}/100 × ${base}.` };
+  }
+  if(mode==='increase'){
+    const ans = base*(1+p/100);
+    return { tag:'Percent', prompt:`Increase <span class="mono">${base}</span> by <span class="mono">${p}%</span>`, answer:ans,
+      explain:`Multiply by (1+${p}/100).` };
+  }
+  const ans = base*(1-p/100);
+  return { tag:'Percent', prompt:`Decrease <span class="mono">${base}</span> by <span class="mono">${p}%</span>`, answer:ans,
+    explain:`Multiply by (1−${p}/100).` };
+}
+
+/* --- Algebra linear --- */
+function genAlgebraLinear(R,L){
+  // ax + b = c or ax + b = dx + e
+  const a = nonZero(rand(R.coef[0], R.coef[1])),
+        b = rand(R.small[0], R.small[1]),
+        d = (L>=3? nonZero(rand(R.coef[0], R.coef[1])) : 0),
+        x = rand(-15, 15),
+        c = a*x + b,
+        e = d? (d*x + rand(R.small[0], R.small[1])) : null;
+  if(d){
+    // ax + b = dx + e  → (a-d)x = e-b
+    const rhs = e, lhs = `${a}x ${b>=0?'+':''}${b}`;
+    const ans = (rhs - b)/(a - d);
+    return { tag:'Linear', prompt:`Solve for x: <span class="mono">${a}x ${b>=0?'+':''}${b} = ${d}x ${ (rhs-d*x)>=0?'+':'' }${rhs - d*x}</span>`,
+             answer: ans, explain:`Bring x-terms together: (${a}-${d})x = ${(rhs-b)} ⇒ x = ${(rhs-b)}/${a-d} = ${pretty(ans)}.` };
+  }
+  return { tag:'Linear', prompt:`Solve for x: <span class="mono">${a}x ${b>=0?'+':''}${b} = ${c}</span>`,
+    answer:x, explain:`Subtract ${b}, divide by ${a}.` };
+}
+function nonZero(v){ return v===0?1:v; }
+
+/* --- Quadratic --- */
+function genQuadratic(R,L){
+  // ax^2 + bx + c = 0 ; choose integer roots if L<=3, else real roots
+  if (L<=3){
+    const r1 = rand(-9,9), r2 = rand(-9,9);
+    const a = choice([1,1,1,2,3]); const b = -a*(r1+r2), c = a*r1*r2;
+    const disc = b*b - 4*a*c;
+    const ans = Math.min(r1,r2); // we'll ask for the **smaller root** to keep scalar
+    return { tag:'Quadratic', prompt:`For <span class="mono">${a}x² ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c}=0</span>, give the <b>smaller root</b>.`,
+             answer: ans, explain:`Roots from quadratic formula: (−b ± √Δ)/(2a) with Δ=${disc}. Smaller is ${Math.min(r1,r2)}.` };
+  }
+  // Master: random a,b,c with non-perfect Δ; ask for sum of roots or product
+  const a = nonZero(rand(-6,6)), b = rand(-20,20), c = rand(-40,40);
+  const ask = choice(['sum','prod']);
+  const sum = -b/a, prod = c/a;
+  return { tag:'Quadratic', prompt:`For <span class="mono">${a}x² ${b>=0?'+':''}${b}x ${c>=0?'+':''}${c}=0</span>, give the <b>${ask==='sum'?'sum':'product'}</b> of the roots.`,
+           answer: (ask==='sum'?sum:prod), explain:`Vieta: sum = −b/a = ${pretty(sum)}, product = c/a = ${pretty(prod)}.` };
+}
+
+/* --- Systems of equations --- */
+function genSystems(R,L){
+  // 2×2 system; Master may include fractions
+  let a=nonZero(rand(-8,8)), b=nonZero(rand(-8,8)),
+      c=nonZero(rand(-8,8)), d=nonZero(rand(-8,8));
+  // pick integer solution (x0,y0), then compute rhs
+  let x0 = rand(-8,8), y0 = rand(-8,8);
+  if(L===4){ x0 = rand(-12,12); y0 = rand(-12,12); } // harder
+  const r1 = a*x0 + b*y0; const r2 = c*x0 + d*y0;
+  const ask = choice(['x','y']);
+  const prompt = `Solve the system and give <b>${ask}</b>:
+  <div class="mono">${a}x ${b>=0?'+':''}${b}y = ${r1}</div>
+  <div class="mono">${c}x ${d>=0?'+':''}${d}y = ${r2}</div>`;
+  const expl = `Use elimination or Cramer's rule. det = ${a*d - b*c}.
+  x = det_x/det, y = det_y/det ⇒ (x,y)=(${x0},${y0}).`;
+  return { tag:'Systems', prompt, answer: (ask==='x'?x0:y0), explain: expl };
+}
+
+/* --- Exponents & Roots --- */
+function genExponents(R,L){
+  const kind = choice(['pow','root','product','power-of-power']);
+  if(kind==='pow'){
+    const a=rand(2,9), b=rand(2, L>=4?6:4);
+    return { tag:'Exponents', prompt:`Compute: <span class="mono">${a}<sup>${b}</sup></span>`, answer: Math.pow(a,b),
+             explain:`Multiply ${a} by itself ${b} times.` };
+  }
+  if(kind==='root'){
+    const a=rand(2,12); return { tag:'Exponents', prompt:`Compute: <span class="mono">√${a*a}</span>`, answer:a, explain:`Square root of ${a*a}.` };
+  }
+  if(kind==='product'){
+    const a=rand(2,6), p=rand(2,5), q=rand(2,5);
+    return { tag:'Exponents', prompt:`Simplify: <span class="mono">${a}<sup>${p}</sup> × ${a}<sup>${q}</sup></span>`,
+      answer: Math.pow(a, p+q), explain:`Add exponents → ${a}<sup>${p+q}</sup>.`};
+  }
+  const a=rand(2,6), b=rand(2,5), c=rand(2,5);
+  return { tag:'Exponents', prompt:`Simplify: <span class="mono">(${a}<sup>${b}</sup>)<sup>${c}</sup></span>`,
+           answer: Math.pow(a,b*c), explain:`(a^b)^c = a^(b·c).`};
+}
+
+/* --- Logarithms --- */
+function genLogs(R,L){
+  // Ask for log_a(b) or solve a^x=b
+  const mode = choice(['eval','solve']);
+  if(mode==='eval'){
+    // choose base & exponent so result is clean for lower levels; harder at Master
+    let base = rand(...R.base); if (base===1) base=2;
+    const k = (L<=2)? rand(1,4) : rand(1, (L===3?6:9));
+    const b = Math.pow(base, k);
+    if (L===4 && Math.random()<0.5){
+      // Master: change-of-base with awkward numbers; round to 4 d.p.
+      const a = rand(2,19); const x = rand(2,13);
+      return { tag:'Logarithms', prompt:`Evaluate (4 d.p.): <span class="mono">log<sub>${a}</sub>(${x})</span>`,
+               answer: Math.log(x)/Math.log(a), explain:`Use change-of-base: log_a(x) = ln(x)/ln(a).` };
+    }
+    return { tag:'Logarithms', prompt:`Evaluate: <span class="mono">log<sub>${base}</sub>(${b})</span>`,
+             answer:k, explain:`Because ${base}<sup>${k}</sup> = ${b}.` };
+  }
+  // solve a^x = b
+  const a = rand(2, (L>=3?12:9)), k = rand(1,(L===4?8:5)), b = Math.pow(a,k);
+  return { tag:'Logarithms', prompt:`Solve for x: <span class="mono">${a}<sup>x</sup> = ${b}</span>`,
+           answer:k, explain:`Take log base ${a} or compare exponents ⇒ x=${k}.` };
+}
+
+/* --- Sequences & Series --- */
+function genSequences(R,L){
+  const kind = choice(['arith-nth','geom-nth','arith-sum','geom-sum']);
+  if(kind==='arith-nth'){
+    const a1=rand(-20,20), d=rand(-10,10)||1, n=rand(5, (L>=3?40:20));
+    return { tag:'Sequences', prompt:`Arithmetic sequence: a₁=${a1}, d=${d}. Find a<sub>${n}</sub>.`,
+             answer: a1 + (n-1)*d, explain:`a_n = a₁ + (n−1)d.` };
+  }
+  if(kind==='geom-nth'){
+    const a1=rand(-9,9)||2, r=sgn()*rand(2, (L>=3?5:3)), n=rand(4,(L>=3?16:10));
+    return { tag:'Sequences', prompt:`Geometric sequence: a₁=${a1}, r=${r}. Find a<sub>${n}</sub>.`,
+             answer: a1*Math.pow(r,n-1), explain:`a_n = a₁ r^{n−1}.` };
+  }
+  if(kind==='arith-sum'){
+    const a1=rand(-20,20), d=rand(-8,8)||2, n=rand(5,(L>=4?120:40));
+    const an = a1 + (n-1)*d; const S = n*(a1+an)/2;
+    return { tag:'Sequences', prompt:`Arithmetic series: a₁=${a1}, d=${d}. Sum of first ${n}?`,
+             answer:S, explain:`a_n=a₁+(n−1)d,  S_n = n(a₁+a_n)/2.` };
+  }
+  const a1=rand(1,9), r=rand(2,(L>=3?6:4)), n=rand(3,(L>=4?15:8));
+  const S = a1*(Math.pow(r,n)-1)/(r-1);
+  return { tag:'Sequences', prompt:`Geometric series: a₁=${a1}, r=${r}. Sum of first ${n}?`,
+           answer:S, explain:`S_n=a₁(r^n−1)/(r−1).` };
+}
+
+/* --- Probability / Combinatorics --- */
+function fact(n){ let f=1; for(let i=2;i<=n;i++) f*=i; return f; }
+function nCr(n,r){ if(r<0||r>n) return 0; r=Math.min(r,n-r); let num=1,den=1; for(let i=1;i<=r;i++){ num*= (n-r+i); den*=i; } return num/den; }
+function nPr(n,r){ if(r<0||r>n) return 0; let p=1; for(let i=0;i<r;i++) p*= (n-i); return p; }
+
+function genProbability(R,L){
+  const n = rand(...R.probN), r = rand(0, n);
+  const kind = choice(['nCr','nPr','prob']);
+  if(kind==='nCr'){ return { tag:'Probability', prompt:`Compute: <span class="mono">C(${n},${r})</span>`, answer:nCr(n,r), explain:`C(n,r)=n!/(r!(n−r)!)` }; }
+  if(kind==='nPr'){ return { tag:'Probability', prompt:`Compute: <span class="mono">P(${n},${r})</span>`, answer:nPr(n,r), explain:`P(n,r)=n!/(n−r)!`}; }
+  // simple probability: choose r reds from bag etc. → probability as combinations
+  const Rr = rand(3,7), Bb = rand(3,7), draw = Math.min(rand(1,4), Rr+Bb);
+  const want = Math.min(rand(0, draw), Rr);
+  const totalWays = nCr(Rr+Bb, draw), goodWays = nCr(Rr, want)*nCr(Bb, draw-want);
+  return { tag:'Probability', prompt:`A bag has ${Rr} red and ${Bb} blue balls. Draw ${draw} without replacement. Probability of exactly ${want} red?`,
+           answer: goodWays/totalWays, explain:`Ways = C(${Rr},${want})·C(${Bb},${draw-want}) / C(${Rr+Bb},${draw}).` };
+}
+
+/* --- Geometry --- */
+function genGeometry(R,L){
+  const kind = choice(['circle-area','rectangle-area','triangle-area','perimeter']);
+  if(kind==='circle-area'){
+    const r=rand(1, L>=4?35:18); const A=Math.PI*r*r;
+    return { tag:'Geometry', prompt:`Area of circle with radius <span class="mono">${r}</span> (π≈3.1416).`, answer:A,
+      explain:`A=πr² = ${r}²·π.` };
+  }
+  if(kind==='triangle-area'){
+    const b=rand(3, L>=4?50:18), h=rand(3, L>=4?50:18);
+    return { tag:'Geometry', prompt:`Area of triangle with base ${b}, height ${h}.`, answer:0.5*b*h,
+      explain:`A=½bh.` };
+  }
+  if(kind==='rectangle-area'){
+    const a=rand(2,L>=4?80:30), b=rand(2,L>=4?80:30);
+    return { tag:'Geometry', prompt:`Area of rectangle ${a}×${b}.`, answer:a*b, explain:`A=a·b.` };
+  }
+  const a=rand(2,40), b=rand(2,40);
+  return { tag:'Geometry', prompt:`Perimeter of rectangle ${a}×${b}.`, answer:2*(a+b), explain:`P=2(a+b).` };
+}
+
+/* --- Matrices --- */
+function genMatrices(R,L){
+  const kind = choice(L>=4 ? ['det2','det3','prod-entry-2','prod-entry-23'] : ['det2','prod-entry-2']);
+  if(kind==='det2'){
+    const a=rand(-9,9), b=rand(-9,9), c=rand(-9,9), d=rand(-9,9);
+    const det = a*d - b*c;
+    return { tag:'Matrices', prompt:`det ⎡${a}  ${b}⎤\n    ⎣${c}  ${d}⎦`, answer:det, explain:`det = ad − bc = ${a}·${d} − ${b}·${c} = ${det}.` };
+  }
+  if(kind==='det3'){
+    // Sarrus for 3×3 (Master)
+    const m = [...Array(3)].map(()=>[rand(-6,6),rand(-6,6),rand(-6,6)]);
+    const det = m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1]) - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0]) + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+    const mat = `⎡${m[0][0]}  ${m[0][1]}  ${m[0][2]}⎤\n⎢${m[1][0]}  ${m[1][1]}  ${m[1][2]}⎥\n⎣${m[2][0]}  ${m[2][1]}  ${m[2][2]}⎦`;
+    return { tag:'Matrices', prompt:`det ${mat}`, answer:det, explain:`Use cofactor expansion / Sarrus; result ${det}.` };
+  }
+  if(kind==='prod-entry-23'){
+    // (2×3)·(3×2), ask for one entry
+    const A=[ [rand(-5,5),rand(-5,5),rand(-5,5)], [rand(-5,5),rand(-5,5),rand(-5,5)] ];
+    const B=[ [rand(-5,5),rand(-5,5)], [rand(-5,5),rand(-5,5)], [rand(-5,5),rand(-5,5)] ];
+    const i = rand(1,2), j=rand(1,2);
+    const entry = A[i-1][0]*B[0][j-1] + A[i-1][1]*B[1][j-1] + A[i-1][2]*B[2][j-1];
+    const fmtA = `⎡${A[0][0]}  ${A[0][1]}  ${A[0][2]}⎤\n⎣${A[1][0]}  ${A[1][1]}  ${A[1][2]}⎦`;
+    const fmtB = `⎡${B[0][0]}  ${B[0][1]}⎤\n⎢${B[1][0]}  ${B[1][1]}⎥\n⎣${B[2][0]}  ${B[2][1]}⎦`;
+    return { tag:'Matrices', prompt:`Given A·B with\nA=${fmtA}\nB=${fmtB}\nFind entry ( ${i} , ${j} ).`, answer:entry,
+             explain:`(AB)_{${i}${j}} = Σ_k A_{${i}k} B_{k${j}} = ${entry}.` };
+  }
+  // product entry (2×2)*(2×2)
+  const a11=rand(-6,6), a12=rand(-6,6), a21=rand(-6,6), a22=rand(-6,6);
+  const b11=rand(-6,6), b12=rand(-6,6), b21=rand(-6,6), b22=rand(-6,6);
+  const i=rand(1,2), j=rand(1,2);
+  const entry = (i===1? a11:b21) * (j===1? b11:b12) + (i===1? a12:a22) * (j===1? b21:b22);
+  return { tag:'Matrices', prompt:`For A=${mat2(a11,a12,a21,a22)} and B=${mat2(b11,b12,b21,b22)}, find entry ( ${i} , ${j} ) of AB.`,
+           answer:entry, explain:`(AB)_{ij} = row_i(A)·col_j(B) = ${entry}.` };
+}
+function mat2(a,b,c,d){ return `⎡${a}  ${b}⎤ / ⎣${c}  ${d}⎦`.replace('/', '\n'); }
+
+})();
+</script>
+</body>
+</html>
